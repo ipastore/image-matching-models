@@ -35,7 +35,7 @@ class GIM_DKM(BaseMatcher):
             gdown.download(GIM_DKM.weights_src, output=str(self.ckpt_path), fuzzy=True)
 
     def load_weights(self):
-        state_dict = torch.load(self.ckpt_path, map_location="cpu")
+        state_dict = torch.load(self.ckpt_path, map_location="cpu",weights_only=False)
         if "state_dict" in state_dict.keys():
             state_dict = state_dict["state_dict"]
         for k in list(state_dict.keys()):
@@ -124,13 +124,20 @@ class GIM_LG(BaseMatcher):
     def download_weights(self):
         if not self.ckpt_path.exists():
             print(f"Downloading {self.ckpt_path.name}")
-            py3_wget.download_file(GIM_LG.weights_src, self.ckpt_path)
+            gdown.download(GIM_LG.weights_src, output=str(self.ckpt_path), fuzzy=True)
+            # Verify the integrity of the downloaded file
+            try:
+                torch.load(self.ckpt_path, map_location="cpu")
+            except Exception as e:
+                print(f"Failed to load the weights file: {e}")
+                self.ckpt_path.unlink()  # Remove the corrupted file
+                raise RuntimeError("Failed to download the weights file correctly.")
         if not self.superpoint_v1_path.exists():
             print(f"Downloading {self.superpoint_v1_path.name}")
             py3_wget.download_file(GIM_LG.superpoint_v1_weight_src, self.superpoint_v1_path)
 
     def load_weights(self):
-        state_dict = torch.load(self.ckpt_path, map_location="cpu")
+        state_dict = torch.load(self.ckpt_path, map_location="cpu", weights_only=False)
         if "state_dict" in state_dict.keys():
             state_dict = state_dict["state_dict"]
         for k in list(state_dict.keys()):
@@ -140,7 +147,7 @@ class GIM_LG(BaseMatcher):
                 state_dict[k.replace("superpoint.", "", 1)] = state_dict.pop(k)
         self.detector.load_state_dict(state_dict)
 
-        state_dict = torch.load(self.ckpt_path, map_location="cpu")
+        state_dict = torch.load(self.ckpt_path, map_location="cpu", weights_only=False)
         if "state_dict" in state_dict.keys():
             state_dict = state_dict["state_dict"]
         for k in list(state_dict.keys()):
