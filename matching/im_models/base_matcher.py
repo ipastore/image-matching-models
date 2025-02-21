@@ -76,7 +76,8 @@ class BaseMatcher(torch.nn.Module):
             np.ndarray: (N,2) array of kpts in original img coordinates
         """
         return to_px_coords(to_normalized_coords(pts, h_new, w_new), h_orig, w_orig)
-
+    
+    # TODO: Add a find_essential function with the same signature as find_homography 
     @staticmethod
     def find_homography(
         points1: np.ndarray | torch.Tensor,
@@ -94,6 +95,9 @@ class BaseMatcher(torch.nn.Module):
         inliers_mask = inliers_mask[:, 0]
         return H, inliers_mask.astype(bool)
 
+
+    # TODO: Add a parameter to use E matrix or H matrix. H could be by defult. there could be an if statement to switch 
+    # for find_homography and find_essential
     def process_matches(
         self, matched_kpts0: np.ndarray, matched_kpts1: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -137,6 +141,7 @@ class BaseMatcher(torch.nn.Module):
         orig_shape = h, w
         return img, orig_shape
 
+    #TODO: Add mask0 and mask1 as parameters. None as default
     @torch.inference_mode()
     def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path) -> dict:
         """
@@ -169,12 +174,17 @@ class BaseMatcher(torch.nn.Module):
         if isinstance(img1, (str, Path)):
             img1 = BaseMatcher.load_image(img1)
 
+        #TODO: assert img0. img1 , mask0 and mask1 are the same size and torch.tensor?
         assert isinstance(img0, torch.Tensor)
         assert isinstance(img1, torch.Tensor)
 
+        #TODO: Add mask0 and mask1 to self.device? Why?
         img0 = img0.to(self.device)
         img1 = img1.to(self.device)
 
+        #TODO: aaplly mask0 and mask1 to img0 and img1????
+        ####################### OR ############################ THIS DEPENDS ON IF THE LG MATCHER ACCEPT A MASK in the forward method
+        #TODO add mask0 and mask1 as parameters.
         # self._forward() is implemented by the children modules
         matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1)
 

@@ -69,17 +69,24 @@ class TinyRomaMatcher(BaseMatcher):
 
     def __init__(self, device="cpu", max_num_keypoints=2048, *args, **kwargs):
         super().__init__(device, **kwargs)
+
+        #TODO: Review what to do with the model 
         self.roma_model = tiny_roma_v1_outdoor(device=device)
         self.max_keypoints = max_num_keypoints
         self.normalize = tfm.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.roma_model.train(False)
+        #TODO: Add self.mask_token
 
     def preprocess(self, img):
         return self.normalize(img).unsqueeze(0)
 
+    #TODO: add mask0 and mask1 as parameters. Default None?
     def _forward(self, img0, img1):
         img0 = self.preprocess(img0)
         img1 = self.preprocess(img1)
+        
+        #TODO: apply mask0 and mask1 to img0 and img1 FOR ROMA? 
+        # or modify the model of roma? 
 
         h0, w0 = img0.shape[-2:]
         h1, w1 = img1.shape[-2:]
@@ -91,3 +98,5 @@ class TinyRomaMatcher(BaseMatcher):
         mkpts0, mkpts1 = self.roma_model.to_pixel_coordinates(matches, h0, w0, h1, w1)
 
         return mkpts0, mkpts1, None, None, None, None
+
+#TODO: made a class for class TinyRomaMatcher(BaseMatcher) that applies the indoors model. It is implemented in __init__.py
