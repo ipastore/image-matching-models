@@ -54,6 +54,25 @@ class BaseMatcher(torch.nn.Module):
             img = tfm.Resize(resize, antialias=True)(img)
         img = tfm.functional.rotate(img, rot_angle)
         return img
+    
+    @staticmethod
+    def load_mask(path: str | Path | np.ndarray | torch.Tensor, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:
+        
+        if isinstance(resize, int):
+            resize = (resize, resize)
+        
+        if isinstance(path, (str, Path)):
+            mask = tfm.ToTensor()(Image.open(path).convert("L"))
+
+        elif isinstance(path, torch.Tensor):
+            return path
+        else:
+            raise TypeError("Unsupported type for mask. Expected str, Path or .Tensor.")
+        
+        if resize is not None:
+            mask = tfm.Resize(resize, antialias=True)(mask)
+        mask = tfm.functional.rotate(mask, rot_angle)
+        return mask
 
     def rescale_coords(
         self,
@@ -141,9 +160,8 @@ class BaseMatcher(torch.nn.Module):
         orig_shape = h, w
         return img, orig_shape
 
-    #TODO: Add mask0 and mask1 as parameters. None as default
     @torch.inference_mode()
-    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path) -> dict:
+    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path, mask0: torch.Tensor = None, mask1: torch.Tensor = None) -> dict:
         """
         All sub-classes implement the following interface:
 
@@ -151,6 +169,8 @@ class BaseMatcher(torch.nn.Module):
         ----------
         img0 : torch.tensor (C x H x W) | str | Path
         img1 : torch.tensor (C x H x W) | str | Path
+        mask0 : torch.tensor (H x W), optional
+        mask1 : torch.tensor (H x W), optional
 
         Returns
         -------
@@ -174,19 +194,22 @@ class BaseMatcher(torch.nn.Module):
         if isinstance(img1, (str, Path)):
             img1 = BaseMatcher.load_image(img1)
 
-        #TODO: assert img0. img1 , mask0 and mask1 are the same size and torch.tensor?
         assert isinstance(img0, torch.Tensor)
         assert isinstance(img1, torch.Tensor)
-
-        #TODO: Add mask0 and mask1 to self.device? Why?
         img0 = img0.to(self.device)
         img1 = img1.to(self.device)
 
-        #TODO: aaplly mask0 and mask1 to img0 and img1????
-        ####################### OR ############################ THIS DEPENDS ON IF THE LG MATCHER ACCEPT A MASK in the forward method
-        #TODO add mask0 and mask1 as parameters.
+        if mask0 is not None:
+            mask0 = BaseMatcher.load_mask(mask0)
+            assert isinstance(mask0, torch.Tensor)
+            mask0 = mask0.to(self.device)
+        if mask1 is not None:
+            mask1 = BaseMatcher.load_mask(mask1)
+            assert isinstance(mask1, torch.Tensor)
+            mask1 = mask1.to(self.device)
+
         # self._forward() is implemented by the children modules
-        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1)
+        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1, mask0, mask1)
 
         matched_kpts0, matched_kpts1 = to_numpy(matched_kpts0), to_numpy(matched_kpts1)
         H, inlier_kpts0, inlier_kpts1 = self.process_matches(matched_kpts0, matched_kpts1)
@@ -228,11 +251,12 @@ class EnsembleMatcher(BaseMatcher):
 
         self.matchers = [get_matcher(name, device=device, **kwargs) for name in matcher_names]
 
-    def _forward(self, img0: torch.Tensor, img1: torch.Tensor) -> Tuple[np.ndarray, np.ndarray, None, None, None, None]:
+    def _forward(self, img0: torch.Tensor, img1: torch.Tensor, mask0=None, mask1=None) -> Tuple[np.ndarray, np.ndarray, None, None, None, None]:
         all_matched_kpts0, all_matched_kpts1 = [], []
         for matcher in self.matchers:
-            matched_kpts0, matched_kpts1, _, _, _, _ = matcher._forward(img0, img1)
+            matched_kpts0, matched_kpts1, _, _, _, _ = matcher._forward(img0, img1, mask0, mask1)
             all_matched_kpts0.append(to_numpy(matched_kpts0))
             all_matched_kpts1.append(to_numpy(matched_kpts1))
         all_matched_kpts0, all_matched_kpts1 = np.concatenate(all_matched_kpts0), np.concatenate(all_matched_kpts1)
         return all_matched_kpts0, all_matched_kpts1, None, None, None, None
+

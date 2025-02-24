@@ -19,11 +19,11 @@ class LightGlueBase(BaseMatcher):
     def __init__(self, device="cpu", **kwargs):
         super().__init__(device, **kwargs)
 
-    def _forward(self, img0, img1):
+    def _forward(self, img0, img1, mask0=None, mask1=None):
         """
         "extractor" and "matcher" are instantiated by the subclasses.
         """
-        feats0, feats1, matches01 = match_pair(self.extractor, self.matcher, img0, img1, device=self.device)
+        feats0, feats1, matches01 = match_pair(self.extractor, self.matcher, img0, img1, device=self.device, mask0=mask0, mask1=mask1)
         kpts0, kpts1, matches = (
             feats0["keypoints"],
             feats1["keypoints"],
