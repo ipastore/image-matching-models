@@ -5,6 +5,7 @@ import torch
 from matching import BaseMatcher
 from matching.utils import to_numpy
 
+from specular_mask import filter_image_feats_with_mask
 
 class HandcraftedBaseMatcher(BaseMatcher):
     """
@@ -26,7 +27,7 @@ class HandcraftedBaseMatcher(BaseMatcher):
 
         return im
 
-    def _forward(self, img0, img1):
+    def _forward(self, img0, img1, mask0=None, mask1=None, logger=None):
         """
         "det_descr" is instantiated by the subclasses.
         """
@@ -38,20 +39,30 @@ class HandcraftedBaseMatcher(BaseMatcher):
         kp0, des0 = self.det_descr.detectAndCompute(img0, None)
         kp1, des1 = self.det_descr.detectAndCompute(img1, None)
 
-        # BFMatcher with default params
+        # Apply mask filtering
+        if mask0 is not None:
+            kp0, des0 = filter_image_feats_with_mask(img0, mask0, kp0, des0, logger)
+        if mask1 is not None:
+            kp1, des1 = filter_image_feats_with_mask(img1, mask1, kp1, des1, logger)
 
-        raw_matches = self.bf.knnMatch(des0, des1, k=self.k_neighbors)
+        # Log and return if no keypoints left afetr filtering
+        if len(kp0) == 0 or len(kp1) == 0:
+            logger.info("No keypoints left after filtering")
+            return [], [], [], [], [], []
+       
+        # match descriptors
+        matches = self.bf.knnMatch(des0, des1, k=self.k_neighbors)
 
         # Apply ratio test
         good = []
-        for m, n in raw_matches:
+        for m, n in matches:
             if m.distance < self.threshold * n.distance:
                 good.append(m)
 
         mkpts0, mkpts1 = [], []
         for good_match in good:
-            kpt_0 = np.array(kp0[good_match.queryIdx].pt)
-            kpt_1 = np.array(kp1[good_match.trainIdx].pt)
+            kpt_0 = kp0[good_match.queryIdx].pt
+            kpt_1 = kp1[good_match.trainIdx].pt
 
             mkpts0.append(kpt_0)
             mkpts1.append(kpt_1)

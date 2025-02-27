@@ -4,8 +4,10 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as tfm
 import warnings
+import logging
 from pathlib import Path
 from typing import Tuple
+import time
 
 from matching.utils import to_normalized_coords, to_px_coords, to_numpy
 
@@ -49,6 +51,7 @@ class BaseMatcher(torch.nn.Module):
     def load_image(path: str | Path, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:
         if isinstance(resize, int):
             resize = (resize, resize)
+
         img = tfm.ToTensor()(Image.open(path).convert("RGB"))
         if resize is not None:
             img = tfm.Resize(resize, antialias=True)(img)
@@ -57,18 +60,11 @@ class BaseMatcher(torch.nn.Module):
     
     @staticmethod
     def load_mask(path: str | Path | np.ndarray | torch.Tensor, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:
-        
         if isinstance(resize, int):
             resize = (resize, resize)
         
         if isinstance(path, (str, Path)):
             mask = tfm.ToTensor()(Image.open(path).convert("L"))
-
-        elif isinstance(path, torch.Tensor):
-            return path
-        else:
-            raise TypeError("Unsupported type for mask. Expected str, Path or .Tensor.")
-        
         if resize is not None:
             mask = tfm.Resize(resize, antialias=True)(mask)
         mask = tfm.functional.rotate(mask, rot_angle)
@@ -161,7 +157,7 @@ class BaseMatcher(torch.nn.Module):
         return img, orig_shape
 
     @torch.inference_mode()
-    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path, mask0: torch.Tensor = None, mask1: torch.Tensor = None) -> dict:
+    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path, mask0: torch.Tensor | str | Path = None, mask1: torch.Tensor = None, logger: logging.Logger =None) -> dict:
         """
         All sub-classes implement the following interface:
 
@@ -171,6 +167,7 @@ class BaseMatcher(torch.nn.Module):
         img1 : torch.tensor (C x H x W) | str | Path
         mask0 : torch.tensor (H x W), optional
         mask1 : torch.tensor (H x W), optional
+        logger : logging.Logger, optional
 
         Returns
         -------
@@ -200,16 +197,37 @@ class BaseMatcher(torch.nn.Module):
         img1 = img1.to(self.device)
 
         if mask0 is not None:
-            mask0 = BaseMatcher.load_mask(mask0)
+            if isinstance(mask0, (str, Path)):
+                mask0 = BaseMatcher.load_mask(mask0)
             assert isinstance(mask0, torch.Tensor)
             mask0 = mask0.to(self.device)
         if mask1 is not None:
-            mask1 = BaseMatcher.load_mask(mask1)
+            if isinstance(mask1, (str, Path)):
+                mask1 = BaseMatcher.load_mask(mask1)
             assert isinstance(mask1, torch.Tensor)
             mask1 = mask1.to(self.device)
+            
+        if logger:
+            logger.debug(f'BaseMatcher Forward pass with {self.__class__.__name__}')
+            logger.debug(f'img0 type: {type(img0)}; shape: {img0.shape}; dtype: {img0.dtype}')
+            logger.debug(f'img1 type: {type(img1)}; shape: {img1.shape}; dtype: {img1.dtype}')
+            logger.debug(f'mask0 type: {type(mask0)}; shape: {mask0.shape}; dtype: {mask0.dtype}') if mask0 is not None else None
+            logger.debug(f'mask1 type: {type(mask1)}; shape: {mask1.shape}; dtype: {mask1.dtype}') if mask1 is not None else None
 
         # self._forward() is implemented by the children modules
-        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1, mask0, mask1)
+        start = time.perf_counter()
+        # TODO: add logger to the other methods. Also add the masks for the methods I dindt use so far.
+        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1, mask0, mask1, logger)
+        end = time.perf_counter()
+        if logger:
+            logger.debug(f'BaseMatcher Forward pass took {end - start:.3f} seconds')
+            logger.debug(f'matched_kpts0 shape: {matched_kpts0.shape}')
+            logger.debug(f'matched_kpts1 shape: {matched_kpts1.shape}')
+            logger.debug(f'all_kpts0 shape: {all_kpts0.shape}') if all_kpts0 is not None else None
+            logger.debug(f'all_kpts1 shape: {all_kpts1.shape}') if all_kpts1 is not None else None
+            logger.debug(f'all_desc0 shape: {all_desc0.shape}') if all_desc0 is not None else None
+            logger.debug(f'all_desc1 shape: {all_desc1.shape}') if all_desc1 is not None else None
+
 
         matched_kpts0, matched_kpts1 = to_numpy(matched_kpts0), to_numpy(matched_kpts1)
         H, inlier_kpts0, inlier_kpts1 = self.process_matches(matched_kpts0, matched_kpts1)

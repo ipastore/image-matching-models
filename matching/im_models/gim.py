@@ -11,6 +11,8 @@ BASE_PATH = THIRD_PARTY_DIR.joinpath("gim")
 add_to_path(BASE_PATH)
 from dkm.models.model_zoo.DKMv3 import DKMv3
 
+from specular_mask import filter_image_feats_with_mask
+
 
 class GIM_DKM(BaseMatcher):
 
@@ -164,10 +166,10 @@ class GIM_LG(BaseMatcher):
         # convert to grayscale
         return rgb_to_grayscale(img.unsqueeze(0))
 
-    def _forward(self, img0, img1):
+    def _forward(self, img0, img1, mask0, mask1, logger=None):
         img0 = self.preprocess(img0)
         img1 = self.preprocess(img1)
-
+        
         data = dict(image0=img0, image1=img1)
 
         scale0 = torch.tensor([1.0, 1.0]).to(self.device)[None]
@@ -203,19 +205,30 @@ class GIM_LG(BaseMatcher):
             }
         )
 
-        pred.update(self.model({**pred, **data, **{"resize0": data["size0"], "resize1": data["size1"]}}))
+        # # Mask Filtering
+        if mask0 is not None:
+            pred["keypoints0"], pred["descriptors0"] = filter_image_feats_with_mask(img0, mask0, pred["keypoints0"], pred["descriptors0"],logger)
+        if mask1 is not None: 
+            pred["keypoints1"], pred["descriptors1"] = filter_image_feats_with_mask(img1, mask1, pred["keypoints1"], pred["descriptors1"],logger)
+    
+        if len(pred["keypoints0"]) == 0 or len(pred["keypoints1"]) == 0:
+            logger.info("No keypoints left after filtering")
+            return [], [], [], [], [], []
 
         kpts0 = torch.cat([kp * s for kp, s in zip(pred["keypoints0"], data["scale0"][:, None])])
         kpts1 = torch.cat([kp * s for kp, s in zip(pred["keypoints1"], data["scale1"][:, None])])
-
         desc0, desc1 = pred["descriptors0"], pred["descriptors1"]
+        
+        pred.update(self.model({**pred, **data, **{"resize0": data["size0"], "resize1": data["size1"]}}))
 
-        m_bids = torch.nonzero(pred["keypoints0"].sum(dim=2) > -1)[:, 0]
+        m_bids0 = torch.nonzero(pred["keypoints0"].sum(dim=2) > -1)[:, 0]
+        m_bids1 = torch.nonzero(pred["keypoints1"].sum(dim=2) > -1)[:, 0]
+        # m_bids = torch.nonzero(pred["keypoints0"].sum(dim=2) > -1)[:, 0]
         matches = pred["matches"]
         bs = data["image0"].size(0)
 
-        mkpts0 = torch.cat([kpts0[m_bids == b_id][matches[b_id][..., 0]] for b_id in range(bs)])
-        mkpts1 = torch.cat([kpts1[m_bids == b_id][matches[b_id][..., 1]] for b_id in range(bs)])
+        mkpts0 = torch.cat([kpts0[m_bids0 == b_id][matches[b_id][..., 0]] for b_id in range(bs)])
+        mkpts1 = torch.cat([kpts1[m_bids1 == b_id][matches[b_id][..., 1]] for b_id in range(bs)])
         # b_ids = torch.cat([m_bids[m_bids == b_id][matches[b_id][..., 0]] for b_id in range(bs)])
         # mconf = torch.cat(pred['scores'])
 

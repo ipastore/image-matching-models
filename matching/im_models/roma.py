@@ -45,7 +45,7 @@ class RomaMatcher(BaseMatcher):
         pil_img.save(temp.name, format="png")
         return temp, pil_img.size
 
-    def _forward(self, img0, img1, pad=False):
+    def _forward(self, img0, img1,mask0=None, mask1=None, logger=None, pad=False):
         if pad:
             self.compute_padding(img0, img1)
         img0_temp, img0_size = self.preprocess(img0)
@@ -53,7 +53,7 @@ class RomaMatcher(BaseMatcher):
         w0, h0 = img0_size
         w1, h1 = img1_size
 
-        warp, certainty = self.roma_model.match(img0_temp.name, img1_temp.name, batched=False, device=self.device)
+        warp, certainty = self.roma_model.match(img0_temp.name, img1_temp.name, mask0, mask1, logger, batched=False, device=self.device)
 
         img0_temp.close(), img1_temp.close()
         Path(img0_temp.name).unlink()
@@ -63,7 +63,7 @@ class RomaMatcher(BaseMatcher):
         mkpts0, mkpts1 = self.roma_model.to_pixel_coordinates(matches, h0, w0, h1, w1)
 
         return mkpts0, mkpts1, None, None, None, None
-
+        
 
 class TinyRomaMatcher(BaseMatcher):
 
@@ -80,19 +80,15 @@ class TinyRomaMatcher(BaseMatcher):
     def preprocess(self, img):
         return self.normalize(img).unsqueeze(0)
 
-    #TODO: add mask0 and mask1 as parameters. Default None?
-    def _forward(self, img0, img1):
+    def _forward(self, img0, img1, mask0=None, mask1=None, logger=None):
         img0 = self.preprocess(img0)
-        img1 = self.preprocess(img1)
-        
-        #TODO: apply mask0 and mask1 to img0 and img1 FOR ROMA? 
-        # or modify the model of roma? 
+        img1 = self.preprocess(img1)    
 
         h0, w0 = img0.shape[-2:]
         h1, w1 = img1.shape[-2:]
 
         # batch = {"im_A": img0.to(self.device), "im_B": img1.to(self.device)}
-        warp, certainty = self.roma_model.match(img0, img1, batched=False)
+        warp, certainty = self.roma_model.match(img0, img1, mask0, mask1, logger, batched=False)
 
         matches, certainty = self.roma_model.sample(warp, certainty, num=self.max_keypoints)
         mkpts0, mkpts1 = self.roma_model.to_pixel_coordinates(matches, h0, w0, h1, w1)
