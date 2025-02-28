@@ -11,7 +11,7 @@ BASE_PATH = THIRD_PARTY_DIR.joinpath("gim")
 add_to_path(BASE_PATH)
 from dkm.models.model_zoo.DKMv3 import DKMv3
 
-from specular_mask import filter_image_feats_with_mask
+from specular_mask import filter_feat_dict_with_mask, filter_image_feats_with_mask
 
 
 class GIM_DKM(BaseMatcher):
@@ -205,6 +205,7 @@ class GIM_LG(BaseMatcher):
             }
         )
 
+        #TODO: Improve the filter_image_feats_with_mas with filter_feat_dict_with_mask
         # # Mask Filtering
         if mask0 is not None:
             pred["keypoints0"], pred["descriptors0"] = filter_image_feats_with_mask(img0, mask0, pred["keypoints0"], pred["descriptors0"],logger)
