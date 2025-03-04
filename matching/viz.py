@@ -5,6 +5,7 @@ import cv2
 import matplotlib
 from kornia.utils import tensor_to_image
 import torch
+import warnings
 
 # This is to be able to use matplotlib also without a GUI
 if not hasattr(sys, "ps1"):
@@ -50,13 +51,13 @@ def plot_matches(
 
     viz2d.add_text(
         0,
-        f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches\n({len(result_dict['inlier_kpts0'])/len(result_dict['matched_kpts1']):0.2f} inlier ratio)",
+        f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches",
         fs=17,
         lwidth=2,
     )
-
-    viz2d.add_text(0, "Img0", pos=(0.01, 0.01), va="bottom")
-    viz2d.add_text(1, "Img1", pos=(0.01, 0.01), va="bottom")
+    if result_dict['all_kpts0'] is not None:
+        viz2d.add_text(0, f"{len(result_dict['all_kpts0'])} kpts", pos=(0.01, 0.01), va="bottom")
+        viz2d.add_text(1, f"{len(result_dict['all_kpts1'])} kpts", pos=(0.01, 0.01), va="bottom")
 
     if save_path is not None:
         viz2d.save_plot(save_path)
@@ -86,6 +87,53 @@ def plot_kpts(img0, result_dict, model_name="", save_path=None):
     if save_path is not None:
         viz2d.save_plot(save_path)
 
+    return ax
+
+
+def plot_kpts_2_images(
+    img0: np.ndarray,
+    img1: np.ndarray,
+    result_dict: dict,
+    model_name="",
+    colors=["cyan", "cyan"],
+    ps=10,
+    save_path=None,
+):
+    """Plot keypoints from two images side by side.
+
+    Args:
+        img0 (np.ndarray): First image
+        img1 (np.ndarray): Second image
+        result_dict (dict): return from BaseMatcher. Must contain ['all_kpts0', 'all_kpts1']
+        model_name (str, optional): Model name to display in text. Defaults to "".
+        colors (list, optional): Colors for keypoints in each image. Defaults to ["cyan", "cyan"].
+        ps (int, optional): Point size for keypoints. Defaults to 10.
+        save_path (str| Path, optional): Path to save file to. Not saved if None. Defaults to None.
+
+    Returns:
+        List[plt.Axes]: plot axes
+    """
+    if len(model_name):
+        model_name = " - " + model_name
+
+    if 'all_kpts0' not in result_dict:
+        warnings.warn("The key 'all_kpts0' is missing from the result_dict")
+        return
+    
+    # Plot the two images side by side
+    ax = viz2d.plot_images([img0, img1])
+    
+    # Plot keypoints on both images
+    viz2d.plot_keypoints([result_dict["all_kpts0"], result_dict["all_kpts1"]], colors=colors, ps=ps)
+    
+    # Add text with keypoint counts for each image
+    viz2d.add_text(0, f"{len(result_dict['all_kpts0'])} kpts" + model_name, fs=17)
+    viz2d.add_text(1, f"{len(result_dict['all_kpts1'])} kpts" + model_name, fs=17)
+    
+    
+    if save_path is not None:
+        viz2d.save_plot(save_path)
+    
     return ax
 
 
