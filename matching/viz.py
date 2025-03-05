@@ -39,7 +39,8 @@ def plot_matches(
         viz2d.plot_matches(
             result_dict["matched_kpts0"],
             result_dict["matched_kpts1"],
-            color="blue",
+            # color="blue",
+            color="lime", # Modified to plot all the matches in green, without filtering with H. 
             lw=0.05,
             ps=2,
         )
@@ -51,7 +52,8 @@ def plot_matches(
 
     viz2d.add_text(
         0,
-        f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches",
+        # f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches", 
+        f"{len(result_dict['matched_kpts1'])} matches", # Modified to write only the amount of matches (took out the inlier ratio and number of inliers)
         fs=17,
         lwidth=2,
     )
