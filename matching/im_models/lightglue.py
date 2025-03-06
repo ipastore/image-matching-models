@@ -48,8 +48,29 @@ class SiftLightGlue(LightGlueBase):
 class SuperpointLightGlue(LightGlueBase):
     def __init__(self, device="cpu", max_num_keypoints=2048, *args, **kwargs):
         super().__init__(device, **kwargs)
-        self.extractor = SuperPoint(max_num_keypoints=max_num_keypoints).eval().to(self.device)
-        self.matcher = LightGlue(features="superpoint", depth_confidence=-1, width_confidence=-1).to(self.device)
+
+        # Extract parameters from kwargs
+        # For the SuperPoint extractor
+        keypoint_threshold = kwargs.get('detection_threshold', 0.005)
+        max_keypoints = kwargs.get('max_num_keypoints', max_num_keypoints)
+        
+        # For the LightGlue matcher
+        filter_threshold = kwargs.get('filter_threshold', 0.2)
+        depth_confidence = kwargs.get('depth_confidence', -1)
+        width_confidence = kwargs.get('width_confidence', -1)
+        
+        # Initialize the extractor and matcher with the parameters
+        self.extractor = SuperPoint(
+            max_num_keypoints=max_keypoints,
+            detection_threshold=keypoint_threshold
+        ).eval().to(self.device)
+        
+        self.matcher = LightGlue(
+            features="superpoint",
+            depth_confidence=-depth_confidence,
+            width_confidence=-width_confidence,
+            filter_threshold=filter_threshold
+        ).to(self.device)
 
 
 class DiskLightGlue(LightGlueBase):
