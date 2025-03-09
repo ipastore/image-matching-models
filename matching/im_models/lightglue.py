@@ -23,7 +23,7 @@ class LightGlueBase(BaseMatcher):
         """
         "extractor" and "matcher" are instantiated by the subclasses.
         """
-        feats0, feats1, matches01 = match_pair(self.extractor, self.matcher, img0, img1, device=self.device, mask0=mask0, mask1=mask1, logger=logger)
+        feats0, feats1, matches01, timings = match_pair(self.extractor, self.matcher, img0, img1, device=self.device, mask0=mask0, mask1=mask1, logger=logger)
         kpts0, kpts1, matches = (
             feats0["keypoints"],
             feats1["keypoints"],
@@ -35,7 +35,7 @@ class LightGlueBase(BaseMatcher):
 
         mkpts0, mkpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
 
-        return mkpts0, mkpts1, kpts0, kpts1, desc0, desc1
+        return mkpts0, mkpts1, kpts0, kpts1, desc0, desc1, timings
 
 
 class SiftLightGlue(LightGlueBase):
@@ -67,8 +67,8 @@ class SuperpointLightGlue(LightGlueBase):
         
         self.matcher = LightGlue(
             features="superpoint",
-            depth_confidence=-depth_confidence,
-            width_confidence=-width_confidence,
+            depth_confidence=depth_confidence,  # Fixed: removed negative sign
+            width_confidence=width_confidence,  # Fixed: removed negative sign
             filter_threshold=filter_threshold
         ).to(self.device)
 

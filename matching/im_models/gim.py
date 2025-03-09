@@ -205,7 +205,7 @@ class GIM_LG(BaseMatcher):
             }
         )
 
-        #TODO: Improve the filter_image_feats_with_mas with filter_feat_dict_with_mask
+        #TODO colon: Improve the filter_image_feats_with_mas with filter_feat_dict_with_mask
         # # Mask Filtering
         if mask0 is not None:
             pred["keypoints0"], pred["descriptors0"] = filter_image_feats_with_mask(img0, mask0, pred["keypoints0"], pred["descriptors0"],logger)

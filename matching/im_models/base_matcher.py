@@ -92,7 +92,6 @@ class BaseMatcher(torch.nn.Module):
         """
         return to_px_coords(to_normalized_coords(pts, h_new, w_new), h_orig, w_orig)
     
-    # TODO: Add a find_essential function with the same signature as find_homography 
     @staticmethod
     def find_homography(
         points1: np.ndarray | torch.Tensor,
@@ -111,8 +110,6 @@ class BaseMatcher(torch.nn.Module):
         return H, inliers_mask.astype(bool)
 
 
-    # TODO: Add a parameter to use E matrix or H matrix. H could be by defult. there could be an if statement to switch 
-    # for find_homography and find_essential
     def process_matches(
         self, matched_kpts0: np.ndarray, matched_kpts1: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -215,12 +212,10 @@ class BaseMatcher(torch.nn.Module):
             logger.debug(f'mask1 type: {type(mask1)}; shape: {mask1.shape}; dtype: {mask1.dtype}') if mask1 is not None else None
 
         # self._forward() is implemented by the children modules
-        start = time.perf_counter()
-        # TODO: add logger to the other methods. Also add the masks for the methods I dindt use so far.
-        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1 = self._forward(img0, img1, mask0, mask1, logger)
-        end = time.perf_counter()
+        # TODO colon: add logger to the other methods. Also add the masks for the methods I dindt use so far.
+        # TODO colon: add the timings for all the other models
+        matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1, timings = self._forward(img0, img1, mask0, mask1, logger)
         if logger:
-            logger.debug(f'BaseMatcher Forward pass took {end - start:.3f} seconds')
             logger.debug(f'matched_kpts0 shape: {matched_kpts0.shape}')
             logger.debug(f'matched_kpts1 shape: {matched_kpts1.shape}')
             logger.debug(f'all_kpts0 shape: {all_kpts0.shape}') if all_kpts0 is not None else None
@@ -243,6 +238,7 @@ class BaseMatcher(torch.nn.Module):
             "matched_kpts1": matched_kpts1,
             "inlier_kpts0": inlier_kpts0,
             "inlier_kpts1": inlier_kpts1,
+            "timings": timings
         }
 
     def extract(self, img: str | Path | torch.Tensor) -> dict:

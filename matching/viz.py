@@ -11,7 +11,7 @@ import warnings
 if not hasattr(sys, "ps1"):
     matplotlib.use("Agg")
 
-
+#TODO colon: add model_name and some parameterts as text into the images
 def plot_matches(
     img0: np.ndarray,
     img1: np.ndarray,
@@ -41,14 +41,14 @@ def plot_matches(
             result_dict["matched_kpts1"],
             # color="blue",
             color="lime", # Modified to plot all the matches in green, without filtering with H. 
-            lw=0.05,
-            ps=2,
+            lw=0.7,
+            ps=7,
         )
 
     if show_all_kpts and result_dict["all_kpts0"] is not None:
-        viz2d.plot_keypoints([result_dict["all_kpts0"], result_dict["all_kpts1"]], colors="red", ps=2)
+        viz2d.plot_keypoints([result_dict["all_kpts0"], result_dict["all_kpts1"]], colors="blue", ps=7)
 
-    viz2d.plot_matches(result_dict["inlier_kpts0"], result_dict["inlier_kpts1"], color="lime", lw=0.2)
+    viz2d.plot_matches(result_dict["inlier_kpts0"], result_dict["inlier_kpts1"], color="lime", lw=0.7, ps=7)
 
     viz2d.add_text(
         0,

@@ -70,16 +70,16 @@ class TinyRomaMatcher(BaseMatcher):
     def __init__(self, device="cpu", max_num_keypoints=2048, *args, **kwargs):
         super().__init__(device, **kwargs)
 
-        #TODO: Review what to do with the model 
+        #TODO colon: Review what to do with the model 
         self.roma_model = tiny_roma_v1_outdoor(device=device)
         self.max_keypoints = max_num_keypoints
         self.normalize = tfm.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.roma_model.train(False)
-        #TODO: Add self.mask_token
 
     def preprocess(self, img):
         return self.normalize(img).unsqueeze(0)
 
+    #TODO colon: Mask the feature map for all the forward passes. Right now it´s just up to the first pass.
     def _forward(self, img0, img1, mask0=None, mask1=None, logger=None):
         img0 = self.preprocess(img0)
         img1 = self.preprocess(img1)    
@@ -95,4 +95,4 @@ class TinyRomaMatcher(BaseMatcher):
 
         return mkpts0, mkpts1, None, None, None, None
 
-#TODO: made a class for class TinyRomaMatcher(BaseMatcher) that applies the indoors model. It is implemented in __init__.py
+#TODO colon: made a class for class TinyRomaMatcher(BaseMatcher) that applies the indoors model. It is implemented in __init__.py
