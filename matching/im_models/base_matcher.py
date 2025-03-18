@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import torchvision.transforms as tfm
 import warnings
-import logging
+from my_logging import debug_log
 from pathlib import Path
 from typing import Tuple
 import time
@@ -154,7 +154,7 @@ class BaseMatcher(torch.nn.Module):
         return img, orig_shape
 
     @torch.inference_mode()
-    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path, mask0: torch.Tensor | str | Path = None, mask1: torch.Tensor = None, logger: logging.Logger =None) -> dict:
+    def forward(self, img0: torch.Tensor | str | Path, img1: torch.Tensor | str | Path, mask0: torch.Tensor | str | Path = None, mask1: torch.Tensor = None, logger=None) -> dict:
         """
         All sub-classes implement the following interface:
 
@@ -203,27 +203,25 @@ class BaseMatcher(torch.nn.Module):
                 mask1 = BaseMatcher.load_mask(mask1)
             assert isinstance(mask1, torch.Tensor)
             mask1 = mask1.to(self.device)
-            
-        if logger:
-            logger.debug(f'BaseMatcher Forward pass with {self.__class__.__name__}')
-            logger.debug(f'img0 type: {type(img0)}; shape: {img0.shape}; dtype: {img0.dtype}')
-            logger.debug(f'img1 type: {type(img1)}; shape: {img1.shape}; dtype: {img1.dtype}')
-            logger.debug(f'mask0 type: {type(mask0)}; shape: {mask0.shape}; dtype: {mask0.dtype}') if mask0 is not None else None
-            logger.debug(f'mask1 type: {type(mask1)}; shape: {mask1.shape}; dtype: {mask1.dtype}') if mask1 is not None else None
-
+        
+        debug_log(logger, 'base_matcher_forward', f'BaseMatcher Forward pass with {self.__class__.__name__}')
+        debug_log(logger, 'base_matcher_forward', f'img0 type: {type(img0)}; shape: {img0.shape}; dtype: {img0.dtype}')
+        debug_log(logger, 'base_matcher_forward', f'img1 type: {type(img1)}; shape: {img1.shape}; dtype: {img1.dtype}')
+        debug_log(logger, 'base_matcher_forward', f'mask0 type: {type(mask0)}; shape: {mask0.shape}; dtype: {mask0.dtype}') if mask0 is not None else None
+        debug_log(logger, 'base_matcher_forward', f'mask1 type: {type(mask1)}; shape: {mask1.shape}; dtype: {mask1.dtype}') if mask1 is not None else None
+      
         # self._forward() is implemented by the children modules
         # TODO colon: add logger to the other methods. Also add the masks for the methods I dindt use so far.
         # TODO colon: add the timings for all the other models
         matched_kpts0, matched_kpts1, all_kpts0, all_kpts1, all_desc0, all_desc1, timings = self._forward(img0, img1, mask0, mask1, logger)
-        if logger:
-            logger.debug(f'matched_kpts0 shape: {matched_kpts0.shape}')
-            logger.debug(f'matched_kpts1 shape: {matched_kpts1.shape}')
-            logger.debug(f'all_kpts0 shape: {all_kpts0.shape}') if all_kpts0 is not None else None
-            logger.debug(f'all_kpts1 shape: {all_kpts1.shape}') if all_kpts1 is not None else None
-            logger.debug(f'all_desc0 shape: {all_desc0.shape}') if all_desc0 is not None else None
-            logger.debug(f'all_desc1 shape: {all_desc1.shape}') if all_desc1 is not None else None
-
-
+        
+        debug_log(logger, 'base_matcher_forward', f'matched_kpts0 shape: {matched_kpts0.shape}')
+        debug_log(logger, 'base_matcher_forward', f'matched_kpts1 shape: {matched_kpts1.shape}')
+        debug_log(logger, 'base_matcher_forward', f'all_kpts0 shape: {all_kpts0.shape}') if all_kpts0 is not None else None
+        debug_log(logger, 'base_matcher_forward', f'all_kpts1 shape: {all_kpts1.shape}') if all_kpts1 is not None else None
+        debug_log(logger, 'base_matcher_forward', f'all_desc0 shape: {all_desc0.shape}') if all_desc0 is not None else None
+        debug_log(logger, 'base_matcher_forward', f'all_desc1 shape: {all_desc1.shape}') if all_desc1 is not None else None
+        
         matched_kpts0, matched_kpts1 = to_numpy(matched_kpts0), to_numpy(matched_kpts1)
         H, inlier_kpts0, inlier_kpts1 = self.process_matches(matched_kpts0, matched_kpts1)
 
