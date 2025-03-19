@@ -50,7 +50,6 @@ class BaseMatcher(torch.nn.Module):
 
 
     @staticmethod
-    @profile
     def load_image(path: str | Path, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:
         if isinstance(resize, int):
             resize = (resize, resize)

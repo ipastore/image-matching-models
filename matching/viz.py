@@ -8,6 +8,8 @@ import torch
 import warnings
 import matplotlib.pyplot as plt
 import gc
+import psutil
+import os
 
 # This is to be able to use matplotlib also without a GUI
 if not hasattr(sys, "ps1"):
@@ -36,9 +38,7 @@ def plot_matches(
         List[plt.Axes]: plot axes
     """
 
-    fig, ax = plt.subplots()  # Create a new figure instead of relying on a global one
-
-    ax = viz2d.plot_images([img0, img1])
+    fig, ax = viz2d.plot_images([img0, img1])
 
     if show_matched_kpts and "matched_kpts0" in result_dict.keys():
         viz2d.plot_matches(
@@ -68,9 +68,11 @@ def plot_matches(
 
     if save_path is not None:
         viz2d.save_plot(save_path)
-    
+
     plt.close(fig)
     del fig, ax
+    gc.collect()
+
     return
 
 def plot_kpts(img0, result_dict, model_name="", save_path=None):
