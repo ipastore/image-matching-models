@@ -8,6 +8,7 @@ from my_logging import debug_log
 from pathlib import Path
 from typing import Tuple
 import time
+from memory_profiler import profile
 
 from matching.utils import to_normalized_coords, to_px_coords, to_numpy
 
@@ -47,16 +48,25 @@ class BaseMatcher(torch.nn.Module):
         )
         return BaseMatcher.load_image(path, resize, rot_angle)
 
+
     @staticmethod
+    @profile
     def load_image(path: str | Path, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:
         if isinstance(resize, int):
             resize = (resize, resize)
 
-        img = tfm.ToTensor()(Image.open(path).convert("RGB"))
+        pil_img = Image.open(path).convert("RGB")  # Load image
+        img = tfm.ToTensor()(pil_img)
+        del pil_img  # Free PIL image
+
         if resize is not None:
             img = tfm.Resize(resize, antialias=True)(img)
-        img = tfm.functional.rotate(img, rot_angle)
-        return img
+        
+        img_rotated = tfm.functional.rotate(img, rot_angle)
+        del img  # Free original tensor
+
+        return img_rotated
+
     
     @staticmethod
     def load_mask(path: str | Path | np.ndarray | torch.Tensor, resize: int | Tuple = None, rot_angle: float = 0) -> torch.Tensor:

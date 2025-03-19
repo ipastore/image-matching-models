@@ -6,6 +6,8 @@ import matplotlib
 from kornia.utils import tensor_to_image
 import torch
 import warnings
+import matplotlib.pyplot as plt
+import gc
 
 # This is to be able to use matplotlib also without a GUI
 if not hasattr(sys, "ps1"):
@@ -33,6 +35,9 @@ def plot_matches(
     Returns:
         List[plt.Axes]: plot axes
     """
+
+    fig, ax = plt.subplots()  # Create a new figure instead of relying on a global one
+
     ax = viz2d.plot_images([img0, img1])
 
     if show_matched_kpts and "matched_kpts0" in result_dict.keys():
@@ -63,9 +68,10 @@ def plot_matches(
 
     if save_path is not None:
         viz2d.save_plot(save_path)
-
-    return ax
-
+    
+    plt.close(fig)
+    del fig, ax
+    return
 
 def plot_kpts(img0, result_dict, model_name="", save_path=None):
     """Plot keypoints in one image.
