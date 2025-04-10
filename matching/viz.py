@@ -44,21 +44,19 @@ def plot_matches(
         viz2d.plot_matches(
             result_dict["matched_kpts0"],
             result_dict["matched_kpts1"],
-            # color="blue",
-            color="lime", # Modified to plot all the matches in green, without filtering with H. 
+            color="blue",
             lw=0.7,
             ps=7,
         )
 
     if show_all_kpts and result_dict["all_kpts0"] is not None:
-        viz2d.plot_keypoints([result_dict["all_kpts0"], result_dict["all_kpts1"]], colors="blue", ps=7)
+        viz2d.plot_keypoints([result_dict["all_kpts0"], result_dict["all_kpts1"]], colors="cyan", ps=7)
 
     viz2d.plot_matches(result_dict["inlier_kpts0"], result_dict["inlier_kpts1"], color="lime", lw=0.7, ps=7)
 
     viz2d.add_text(
         0,
-        # f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches", 
-        f"{len(result_dict['matched_kpts1'])} matches", # Modified to write only the amount of matches (took out the inlier ratio and number of inliers)
+        f"{len(result_dict['inlier_kpts0'])} inliers/{len(result_dict['matched_kpts1'])} matches", 
         fs=17,
         lwidth=2,
     )
