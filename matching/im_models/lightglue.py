@@ -52,7 +52,7 @@ class SuperpointLightGlue(LightGlueBase):
         # Extract parameters from kwargs
         # For the SuperPoint extractor
         keypoint_threshold = kwargs.get('detection_threshold', 0.005)
-        max_keypoints = kwargs.get('max_num_keypoints', max_num_keypoints)
+        max_superpoint_keypoints = kwargs.get('max_superpoint_keypoints', max_num_keypoints)
         
         # For the LightGlue matcher
         filter_threshold = kwargs.get('filter_threshold', 0.2)
@@ -61,7 +61,7 @@ class SuperpointLightGlue(LightGlueBase):
         
         # Initialize the extractor and matcher with the parameters
         self.extractor = SuperPoint(
-            max_num_keypoints=max_keypoints,
+            max_num_keypoints=max_superpoint_keypoints,
             detection_threshold=keypoint_threshold
         ).eval().to(self.device)
         
