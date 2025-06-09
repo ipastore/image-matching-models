@@ -62,7 +62,7 @@ class RomaMatcher(BaseMatcher):
         w0, h0 = img0_size
         w1, h1 = img1_size
 
-        warp, certainty = self.roma_model.match(img0_temp.name, img1_temp.name, mask0, mask1, logger, batched=False, device=self.device)
+        warp, certainty, timings = self.roma_model.match(img0_temp.name, img1_temp.name, mask0, mask1, logger, batched=False, device=self.device)
 
         img0_temp.close(), img1_temp.close()
         Path(img0_temp.name).unlink()
@@ -71,7 +71,7 @@ class RomaMatcher(BaseMatcher):
         matches, certainty = self.roma_model.sample(warp, certainty, num=self.max_keypoints)
         mkpts0, mkpts1 = self.roma_model.to_pixel_coordinates(matches, h0, w0, h1, w1)
 
-        return mkpts0, mkpts1, None, None, None, None
+        return mkpts0, mkpts1, None, None, None, None, timings
         
 
 class TinyRomaMatcher(BaseMatcher):
