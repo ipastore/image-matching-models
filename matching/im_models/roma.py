@@ -10,7 +10,7 @@ from matching import BaseMatcher, THIRD_PARTY_DIR
 from matching.utils import add_to_path
 
 add_to_path(THIRD_PARTY_DIR.joinpath("RoMa"))
-from romatch import roma_outdoor, tiny_roma_v1_outdoor
+from romatch import roma_outdoor, tiny_roma_v1_outdoor, roma_indoor
 
 from PIL import Image
 from skimage.util import img_as_ubyte
@@ -22,7 +22,16 @@ class RomaMatcher(BaseMatcher):
 
     def __init__(self, device="cpu", max_num_keypoints=2048, *args, **kwargs):
         super().__init__(device, **kwargs)
-        self.roma_model = roma_outdoor(device=device)
+        # TODO colon: add other kwargs from error_measurement for roma_models
+        
+        roma_model = kwargs.get("roma_model", "roma_outdoor")
+        if roma_model == "roma_outdoor":
+            self.roma_model = roma_outdoor(device=device)
+        elif roma_model == "roma_indoor":
+            self.roma_model = roma_indoor(device=device, indoor=True)
+        else:
+            raise ValueError(f"Unknown roma_model: {roma_model}. Choose 'roma_outdoor' or 'roma_indoor'.")
+        
         self.max_keypoints = max_num_keypoints
         self.normalize = tfm.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.roma_model.train(False)
@@ -70,7 +79,6 @@ class TinyRomaMatcher(BaseMatcher):
     def __init__(self, device="cpu", max_num_keypoints=2048, *args, **kwargs):
         super().__init__(device, **kwargs)
 
-        #TODO colon: Review what to do with the model 
         self.roma_model = tiny_roma_v1_outdoor(device=device)
         self.max_keypoints = max_num_keypoints
         self.normalize = tfm.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -94,5 +102,3 @@ class TinyRomaMatcher(BaseMatcher):
         mkpts0, mkpts1 = self.roma_model.to_pixel_coordinates(matches, h0, w0, h1, w1)
 
         return mkpts0, mkpts1, None, None, None, None
-
-#TODO colon: made a class for class TinyRomaMatcher(BaseMatcher) that applies the indoors model. It is implemented in __init__.py

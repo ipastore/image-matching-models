@@ -29,8 +29,8 @@ class BaseMatcher(torch.nn.Module):
     def __init__(self, device="cpu", **kwargs):
         super().__init__()
         self.device = device
-
-        self.skip_ransac = False
+        skip_ransac = kwargs.get("skip_ransac", False)
+        self.skip_ransac = skip_ransac
         self.ransac_iters = kwargs.get("ransac_iters", BaseMatcher.DEFAULT_RANSAC_ITERS)
         self.ransac_conf = kwargs.get("ransac_conf", BaseMatcher.DEFAULT_RANSAC_CONF)
         self.ransac_reproj_thresh = kwargs.get("ransac_reproj_thresh", BaseMatcher.DEFAULT_REPROJ_THRESH)
