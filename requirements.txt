@@ -26,3 +26,5 @@ roma
 loguru
 timm
 omegaconf
+memory_profiler
+psutil
